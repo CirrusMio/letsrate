@@ -6,13 +6,15 @@ module Letsrate
     dimension = nil if dimension.blank?
 
     if can_rate? user, dimension
-      rates(dimension).create! do |r|
-        r.stars = stars
-        r.rater = user
-      end
+      collection = rates(dimension)
+      user_rate = collection.where(rater_id: user.id).first || collection.new
+      user_rate.stars = stars
+      user_rate.rater_id ||= user.id
+      user_rate.save!
+
       update_rate_average(stars, dimension)
     else
-      raise "User has already rated."
+      # raise "User has already rated."
     end
   end
 
@@ -38,6 +40,7 @@ module Letsrate
   end
 
   def can_rate?(user, dimension=nil)
+    self.class.allow_rerating? and return true
     user.ratings_given.where(dimension: dimension, rateable_id: id, rateable_type: self.class.name).size.zero?
   end
 
@@ -50,31 +53,44 @@ module Letsrate
   end
 
   module ClassMethods
+    @@allow_rerating = false
 
     def letsrate_rater
       has_many :ratings_given, :class_name => "Rate", :foreign_key => :rater_id
     end
 
     def letsrate_rateable(*dimensions)
-      has_many :rates_without_dimension, :as => :rateable, :class_name => "Rate", :dependent => :destroy, :conditions => {:dimension => nil}
+      has_many :rates_without_dimension, -> { where dimension: nil },
+                                        :as => :rateable, 
+                                        :class_name => "Rate", 
+                                        :dependent => :destroy
       has_many :raters_without_dimension, :through => :rates_without_dimension, :source => :rater
-
-      has_one :rate_average_without_dimension, :as => :cacheable, :class_name => "RatingCache",
-              :dependent => :destroy, :conditions => {:dimension => nil}
-
+      has_one :rate_average_without_dimension, -> { where dimension: nil },
+                                        :as => :cacheable, :class_name => "RatingCache",
+                                        :dependent => :destroy
 
       dimensions.each do |dimension|
-        has_many :"#{dimension}_rates", :dependent => :destroy,
-                                        :conditions => {:dimension => dimension.to_s},
+        has_many :"#{dimension}_rates", -> { where dimension: dimension.to_s },
+                                        :dependent => :destroy,
                                         :class_name => "Rate",
                                         :as => :rateable
-
         has_many :"#{dimension}_raters", :through => "#{dimension}_rates", :source => :rater
-
-        has_one :"#{dimension}_average", :as => :cacheable, :class_name => "RatingCache",
-                                         :dependent => :destroy, :conditions => {:dimension => dimension.to_s}
+        has_one :"#{dimension}_average", -> { where dimension: dimension.to_s },
+                                        :as => :cacheable, 
+                                        :class_name => "RatingCache",
+                                        :dependent => :destroy
       end
     end
+
+    def letsrate_rerateable(*dimensions)
+      @@allow_rerating = true
+      letsrate_rateable(*dimensions)
+    end
+
+    def allow_rerating?
+      @@allow_rerating || false
+    end
+
   end
 
 end

@@ -1,36 +1,39 @@
 $.fn.raty.defaults.path = "/assets"
-$.fn.raty.defaults.half_show = true
+$.fn.raty.defaults.half_show = false
 $ ->
-  $(".star").css opacity: "0.35"
+  console.log("YO")
+  $(".star").css opacity: "0.80"
   $(".star").hover (->
     $(this).css opacity: "1"
   ), ->
-    $(this).css opacity: "0.35"
+    $(this).css opacity: "0.80"
 
-  $(".star").raty
-    half: true,
-    readOnly: ->
-      $(this).data("readonly") == 'true'
+  $.each $(".star"), (idx, elm) ->
+    readOnly = $(elm).data('readonly')
 
-    score: ->
-      $(this).data "rating"
+    $(elm).raty
+      half: true,
+      readOnly: readOnly
 
-    number: ->
-      $(this).data "star-count"
+      score: ->
+        $(elm).data "rating"
 
-    click: (score, evt) ->
-      el = $(this)
+      number: ->
+        $(elm).data "star-count"
 
-      $.post "<%= Rails.application.class.routes.url_helpers.rate_path %>",
+      click: (score, evt) ->
+        el = $(this)
 
-        score: score
-        dimension: $(this).data("dimension")
-        id: $(this).data("id")
-        klass: $(this).data("classname")
-      , (data) ->
-        if el.attr('data-disable-after-rate') == 'true'
-          el.raty('readOnly', true)
+        $.post "<%= Rails.application.class.routes.url_helpers.rate_path %>",
 
-        data
+          score: score
+          dimension: $(this).data("dimension")
+          id: $(this).data("id")
+          klass: $(this).data("classname")
+        , (data) ->
+          if el.attr('data-disable-after-rate') == 'true'
+            el.raty('readOnly', true)
+
+          data
 
   undefined

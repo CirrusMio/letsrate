@@ -24,11 +24,15 @@ module Helpers
 	  @rating = Rate.find_by_rater_id_and_rateable_id_and_dimension(@user.id, @object.id, dimension)
 	  stars = @rating ? @rating.stars : 0
 
-    disable_after_rate = options[:disable_after_rate] || false
+    if options[:disable_after_rate] == false
+      disable_after_rate = false
+    else
+      disable_after_rate = true
+    end
     
     readonly=false
     if disable_after_rate
-      readonly = current_user.present? ? !rateable_obj.can_rate?(current_user.id, dimension) : true
+      readonly = current_user.present? ? !rateable_obj.can_rate?(current_user, dimension) : true
     end
  
     content_tag :div, '', "data-dimension" => dimension, :class => "star", "data-rating" => stars,
