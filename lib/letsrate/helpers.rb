@@ -3,7 +3,7 @@ module Helpers
     cached_average = rateable_obj.average dimension
     avg = cached_average ? cached_average.avg : 0
     star = options[:star] || 5
-    user = options.fetch(:user, current_user)
+    user = options.fetch(:user) || current_user
     disable_after_rate = options[:disable_after_rate] || true
     readonly = !(user && rateable_obj.can_rate?(user, dimension))
     content_tag :div, '', "data-dimension" => dimension, :class => "star",
